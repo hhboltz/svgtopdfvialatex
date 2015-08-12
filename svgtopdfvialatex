@@ -1,0 +1,52 @@
+#!/bin/bash
+#HHB 2015-04-07
+echo "This is svgtopdfvialatex v1e-13, 2015"
+pre='\documentclass[a4paper,11pt]{article}
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[active,tightpage,displaymath]{preview}
+\usepackage[a0paper,margin=5cm]{geometry}
+\setlength\PreviewBorder{1pt}
+\begin{document}\fontsize{11}{13}\selectfont\pagestyle{empty}$~$\vspace{1pt}\begin{preview}'
+post='\end{preview}\vspace{1pt}$~$\end{document}'
+
+
+files=( "$@" )
+anz=$#
+orgdir=`pwd`
+let anz=anz-1
+for n in `seq 0 1 $anz`
+do
+  name=${files[$n]}
+  echo -e "\tnow processing $name"
+  if [ -f $name ]
+  then
+    ext=${name##*.}
+    if [ "$ext" = "svg" ]
+    then
+      base=${name%%.svg}
+      tmpdir=`mktemp -d`
+      cp $name $tmpdir/$name
+      cd $tmpdir
+      inkscape $base.svg --export-pdf $base.pdf --export-latex
+      echo "$pre" > tmp.tex
+      cat $base.pdf_tex >> tmp.tex
+      echo "$post" >> tmp.tex
+      pdflatex -interaction batchmode tmp.tex </dev/null &>/dev/null
+      mv tmp.pdf $orgdir/${base}_comp.pdf
+      mv $base.pdf $base.pdf_tex $orgdir
+      rm -f *
+      cd $orgdir
+      rm -rf $tmpdir
+    else
+      echo "input file $name does not look like an .svg file, skipping it\n"
+    fi
+  else
+    echo "file $name does not exist"
+  fi
+done
+echo -e "..and jesus wept, for there were no more worlds to conquer\nthis is not finnish, but the end"
